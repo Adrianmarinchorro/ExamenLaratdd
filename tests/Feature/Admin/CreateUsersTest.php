@@ -350,4 +350,74 @@ class CreateUsersTest extends TestCase
 
         $this->assertDatabaseEmpty('users');
     }
+
+    /** @test */
+    function the_bio_is_required()
+    {
+        $this->withExceptionHandling();
+
+        $this->from('usuarios/nuevo')
+            ->post('usuarios', $this->getValidData([
+                'bio' => null,
+            ]))
+            ->assertSessionHasErrors(['bio']);
+
+        $this->assertDatabaseEmpty('users');
+    }
+
+    /** @test */
+    function the_twitter_is_nullable()
+    {
+        $this->withExceptionHandling();
+
+        $this->from('usuarios/nuevo')
+            ->post('usuarios', $this->getValidData([
+                'twitter' => null,
+            ]))
+            ->assertRedirect('usuarios');
+
+        $this->assertDatabaseCount('users', 1);
+
+        $this->assertDatabaseCount('user_profiles', 1);
+    }
+
+    /** @test */
+    function the_twitter_must_be_present()
+    {
+        $this->withExceptionHandling();
+
+        $this->from('usuarios/nuevo')
+            ->post('usuarios',[
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'profession_id' => '',
+                'bio' => 'Programador de Laravel y Vue.js',
+                'role' => 'user',
+                'state' => 'active',
+            ])
+            ->assertSessionHasErrors(['twitter']);
+
+        $this->assertDatabaseEmpty('users');
+
+        $this->assertDatabaseEmpty('user_profiles');
+    }
+
+    /** @test */
+    function the_twitter_must_be_an_url()
+    {
+        $this->withExceptionHandling();
+
+        $this->from('usuarios/nuevo')
+            ->post('usuarios',$this->getValidData([
+                'twitter' => 'no-an-url'
+            ]))
+            ->assertSessionHasErrors(['twitter']);
+
+        $this->assertDatabaseEmpty('users');
+
+        $this->assertDatabaseEmpty('user_profiles');
+    }
+
 }

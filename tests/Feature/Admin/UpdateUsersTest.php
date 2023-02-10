@@ -266,4 +266,85 @@ class UpdateUsersTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['first_name' => 'Pepe']);
     }
+
+    /** @test  */
+    function the_bio_is_required()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from('usuarios/'.$user->id.'/editar')
+            ->put('usuarios/'.$user->id, $this->getValidData([
+                'bio' => null,
+                'first_name' => 'Pepe',
+            ]))->assertRedirect('usuarios/' . $user->id . '/editar')
+            ->assertSessionHasErrors(['bio']);
+
+        $this->assertDatabaseMissing('users', ['first_name' => 'Pepe']);
+    }
+
+    /** @test  */
+    function the_twitter_is_nullable()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from('usuarios/'.$user->id.'/editar')
+            ->put('usuarios/'.$user->id, $this->getValidData([
+                'twitter' => null,
+                'first_name' => 'Pepe',
+            ]))
+            ->assertRedirect(route('user.show', $user));
+
+        $this->assertDatabaseHas('users', ['first_name' => 'Pepe']);
+
+        $this->assertDatabaseHas('user_profiles', ['twitter' => null]);
+    }
+
+    /** @test  */
+    function the_twitter_must_be_present()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from('usuarios/'.$user->id.'/editar')
+            ->put('usuarios/'.$user->id, [
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'profession_id' => '',
+                'bio' => 'Programador de Laravel y Vue.js',
+                'role' => 'user',
+            ])
+            ->assertRedirect(route('users.edit', $user))
+            ->assertSessionHasErrors(['twitter']);
+
+        $this->assertDatabaseMissing('users', ['first_name' => 'Pepe']);
+
+        $this->assertDatabaseMissing('user_profiles', ['bio' => 'Programador de Laravel y Vue.js']);
+    }
+
+    /** @test  */
+    function the_twitter_must_be_an_url()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from('usuarios/'.$user->id.'/editar')
+            ->put('usuarios/'.$user->id, $this->getValidData([
+                'twitter' => 'wadhoiuahwdoaodiu',
+            ]))
+            ->assertRedirect(route('users.edit', $user))
+            ->assertSessionHasErrors(['twitter']);
+
+        $this->assertDatabaseMissing('users', ['first_name' => 'Pepe']);
+
+        $this->assertDatabaseMissing('user_profiles', ['twitter' => 'wadhoiuahwdoaodiu']);
+    }
+
 }
