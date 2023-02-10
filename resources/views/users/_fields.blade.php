@@ -45,6 +45,12 @@
     </select>
 </div>
 
+<div class="form-group">
+    <label for="profession">Profesión alternativa:</label>
+    <input type="text" class="form-control" name="profession" id="profession"
+           value="{{ old('profession') }}" placeholder="Nombre de tu profesion">
+</div>
+
 <h5>Habilidades</h5>
 
 @foreach($skills as $skill)

@@ -19,6 +19,7 @@ class CreateUsersTest extends TestCase
         'email' => 'pepe@mail.es',
         'password' => '12345678',
         'profession_id' => '',
+        'profession' => 'Estudiante',
         'bio' => 'Programador de Laravel y Vue.js',
         'twitter' => 'https://twitter.com/pepe',
         'role' => 'user',
@@ -190,26 +191,95 @@ class CreateUsersTest extends TestCase
         $this->assertEquals(1, User::count());
     }
 
-    /** @test */
-    function the_profession_id_field_is_optional()
+   /** @test */
+    function the_profession_id_field_is_required_if_profession_field_is_not_present()
     {
         $this->withExceptionHandling();
 
-        $this->post('usuarios', $this->getValidData([
-            'profession_id' => null
-        ]))->assertRedirect('usuarios');
+        $this->from(route('user.create'))
+            ->post('usuarios', [
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'bio' => 'Programador de Laravel y Vue.js',
+                'twitter' => 'https://twitter.com/pepe',
+                'role' => 'user',
+                'state' => 'active',
+            ])->assertRedirect(route('user.create'))
+            ->assertSessionHasErrors(['profession_id']);
 
-        $this->assertCredentials([
-            'first_name' => 'Pepe',
-            'email' => 'pepe@mail.es',
-            'password' => '12345678',
-        ]);
+        $this->assertDatabaseEmpty('users');
+
+        $this->assertDatabaseEmpty('user_profiles');
+    }
+
+    /** @test */
+    function the_profession_field_cant_be_empty_if_profession_id_its_empty_and_vice_versa()
+    {
+        $this->withExceptionHandling();
+
+        $this->from(route('user.create'))
+            ->post('usuarios', [
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'profession_id' => null,
+                'profession' => '',
+                'bio' => 'Programador de Laravel y Vue.js',
+                'twitter' => 'https://twitter.com/pepe',
+                'role' => 'user',
+                'state' => 'active',
+            ])->assertRedirect(route('user.create'))
+            ->assertSessionHasErrors(['profession', 'profession_id']);
+
+        $this->assertDatabaseEmpty('users');
+
+        $this->assertDatabaseEmpty('user_profiles');
+    }
+
+    /** @test */
+    function the_profession_field_create_a_new_profession()
+    {
+        $this->withExceptionHandling();
+
+        $this->from(route('user.create'))
+            ->post('usuarios', $this->getValidData([
+                'profession' => 'Estudiante'
+            ]))->assertRedirect(route('users'));
+
+        $this->assertDatabaseCount('users', 1);
 
         $this->assertDatabaseHas('user_profiles', [
-            'bio' => 'Programador de Laravel y Vue.js',
-            'user_id' => User::findByEmail('pepe@mail.es')->id,
-            'profession_id' => null,
+            'profession_id' => Profession::where('title', 'Estudiante')->first()->id,
+
         ]);
+
+        $this->assertDatabaseHas('professions', [
+            'id' => Profession::where('title', 'Estudiante')->first()->id,
+            'title' => 'Estudiante',
+        ]);
+    }
+
+    /** @test */
+    function the_profession_field_cannot_create_a_new_profession_if_its_already_exists()
+    {
+        $this->withExceptionHandling();
+
+        factory(Profession::class)->create([
+            'title'=> 'Estudiante'
+        ]);
+
+        $this->from(route('user.create'))
+            ->post('usuarios', $this->getValidData([
+                'profession' => 'Estudiante'
+            ]))->assertRedirect(route('user.create'))
+            ->assertSessionHasErrors(['profession']);
+
+        $this->assertDatabaseEmpty('users');
+
+        $this->assertDatabaseEmpty('user_profiles');
     }
 
     /** @test */

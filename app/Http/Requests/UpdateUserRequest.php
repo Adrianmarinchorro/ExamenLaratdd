@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Profession;
 use App\Role;
 use App\User;
 use Illuminate\Foundation\Http\FormRequest;
@@ -36,8 +37,10 @@ class UpdateUserRequest extends FormRequest
             'twitter' => ['nullable', 'present', 'url'],
             'profession_id' => [
                 'nullable', 'present',
-                Rule::exists('professions', 'id')->whereNull('deleted_at')
+                Rule::exists('professions', 'id')->whereNull('deleted_at'),
+                'required_if:profession,null',
             ],
+            'profession' => 'required_if:profession_id,null|unique:professions,title',
             'skills' => [
                 'array',
                 Rule::exists('skills', 'id')
@@ -63,6 +66,13 @@ class UpdateUserRequest extends FormRequest
         }
 
         $user->save();
+
+        if($this->profession_id == null){
+
+            $newProfession = Profession::create(['title' => $this->profession]);
+
+            $this->profession_id = $newProfession->id;
+        }
 
         $user->profile->update([
             'bio' => $this->bio,

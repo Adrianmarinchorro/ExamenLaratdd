@@ -20,6 +20,7 @@ class UpdateUsersTest extends TestCase
         'email' => 'pepe@mail.es',
         'password' => '12345678',
         'profession_id' => '',
+        'profession' => 'Estudiante',
         'bio' => 'Programador de Laravel y Vue.js',
         'twitter' => 'https://twitter.com/pepe',
         'role' => 'user',
@@ -345,6 +346,122 @@ class UpdateUsersTest extends TestCase
         $this->assertDatabaseMissing('users', ['first_name' => 'Pepe']);
 
         $this->assertDatabaseMissing('user_profiles', ['twitter' => 'wadhoiuahwdoaodiu']);
+    }
+
+    /** @test */
+    function the_profession_id_must_be_present()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from(route('users.edit', $user))
+            ->put('usuarios/'. $user->id , [
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'bio' => 'Programador de Laravel y Vue.js',
+                'twitter' => 'https://twitter.com/pepe',
+                'role' => 'user',
+                'state' => 'active',
+            ])->assertRedirect(route('users.edit', $user))
+            ->assertSessionHasErrors(['profession_id']);
+
+        $this->assertDatabaseMissing('users', [
+            'first_name' => 'Pepe',
+            'last_name' => 'Pérez',
+        ]);
+
+        $this->assertDatabaseMissing('user_profiles', [
+            'bio' => 'Programador de Laravel y Vue.js',
+            'twitter' => 'https://twitter.com/pepe',
+        ]);
+    }
+
+    /** @test */
+    function the_profession_id_cant_be_empty_if_profession_is_empty_and_vice_versa()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from(route('users.edit', $user))
+            ->put('usuarios/'. $user->id , [
+                'first_name' => 'Pepe',
+                'last_name' => 'Pérez',
+                'email' => 'pepe@mail.es',
+                'password' => '12345678',
+                'profession_id' => '',
+                'profession' => null,
+                'bio' => 'Programador de Laravel y Vue.js',
+                'twitter' => 'https://twitter.com/pepe',
+                'role' => 'user',
+                'state' => 'active',
+            ])->assertRedirect(route('users.edit', $user))
+            ->assertSessionHasErrors(['profession', 'profession_id']);
+
+        $this->assertDatabaseMissing('users', [
+            'first_name' => 'Pepe',
+            'last_name' => 'Pérez',
+            'email' => 'pepe@mail.es',
+        ]);
+
+        $this->assertDatabaseMissing('user_profiles', [
+            'bio' => 'Programador de Laravel y Vue.js',
+            'twitter' => 'https://twitter.com/pepe',
+        ]);
+    }
+
+    /** @test */
+    function the_profession_field_create_a_new_profession()
+    {
+        $this->withExceptionHandling();
+
+        $user = factory(User::class)->create();
+
+        $this->from(route('users.edit', $user))
+            ->put('usuarios/'. $user->id, $this->getValidData([
+                'profession_id' => null,
+                'profession' => 'Estudiante'
+            ]))->assertRedirect(route('user.show', $user));
+
+        $this->assertDatabaseCount('users', 1);
+
+        $this->assertDatabaseHas('user_profiles', [
+            'profession_id' => Profession::where('title', 'Estudiante')->first()->id,
+
+        ]);
+
+        $this->assertDatabaseHas('professions', [
+            'id' => Profession::where('title', 'Estudiante')->first()->id,
+            'title' => 'Estudiante',
+        ]);
+    }
+
+    /** @test */
+    function the_profession_field_cannot_create_a_new_profession_if_its_already_exists()
+    {
+        $this->withExceptionHandling();
+
+        factory(Profession::class)->create([
+            'title'=> 'Estudiante'
+        ]);
+
+        $user = factory(User::class)->create();
+
+        $this->from(route('users.edit', $user))
+            ->put('usuarios/' . $user->id, $this->getValidData([
+                'profession_id' => null,
+                'profession' => 'Estudiante'
+            ]))->assertRedirect(route('users.edit', $user))
+            ->assertSessionHasErrors(['profession']);
+
+        $this->assertDatabaseMissing('users', [
+            'first_name' => 'Pepe'
+        ]);
+
+        $this->assertDatabaseMissing('user_profiles', ['bio' => 'Programador de Laravel y Vue.js',]);
     }
 
 }
