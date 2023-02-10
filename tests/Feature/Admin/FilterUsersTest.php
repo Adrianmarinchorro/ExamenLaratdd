@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Skill;
+use App\Team;
 use App\User;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -146,5 +147,35 @@ class FilterUsersTest extends TestCase
             ->contains($oldUser)
             ->notContains($newestUser)
             ->notContains($newUser);
+    }
+
+    /** @test */
+    function filter_users_by_team_with_team()
+    {
+        $team = factory(Team::class)->create();
+
+        $userWithoutTeam = factory(User::class)->create();
+        $userWithTeam = factory(User::class)->create(['team_id' => $team->id]);
+
+        $response = $this->get('usuarios?team=with_team');
+
+        $response->assertViewCollection('users')
+            ->contains($userWithTeam)
+            ->notContains($userWithoutTeam);
+    }
+
+    /** @test */
+    function filter_users_by_team_without_team()
+    {
+        $team = factory(Team::class)->create();
+
+        $userWithoutTeam = factory(User::class)->create();
+        $userWithTeam = factory(User::class)->create(['team_id' => $team->id]);
+
+        $response = $this->get('usuarios?team=without_team');
+
+        $response->assertViewCollection('users')
+            ->contains($userWithoutTeam)
+            ->notContains($userWithTeam);
     }
 }
