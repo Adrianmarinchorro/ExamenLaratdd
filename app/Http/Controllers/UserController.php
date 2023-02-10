@@ -2,7 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\{Http\Requests\CreateUserRequest, Http\Requests\UpdateUserRequest, Profession, Skill, Sortable, User};
+use App\{Http\Requests\CreateUserRequest,
+    Http\Requests\UpdateUserRequest,
+    Profession,
+    Skill,
+    Sortable,
+    User,
+    UserProfile};
 use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
@@ -93,6 +99,23 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users');
+    }
+
+    public function restore($id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+
+        $profile = UserProfile::onlyTrashed()->where('user_id', $id)->first();
+
+        $user->restore();
+
+        $profile->restore();
+
+        DB::table('skill_user')
+            ->where('user_id', $id)
+            ->update(['deleted_at' => null]);
+
+        return redirect()->route('users.trashed');
     }
 
     /*public function trashed(Sortable $sortable)
